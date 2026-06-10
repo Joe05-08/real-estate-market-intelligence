@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.streamlit/
+data/processed/
+market_insights.json
+executive_report.md

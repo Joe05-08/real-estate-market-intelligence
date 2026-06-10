@@ -1,0 +1,31 @@
+listing_id,city,neighborhood,property_type,bedrooms,bathrooms,sqft,list_price,estimated_rent,days_on_market,year_built,status
+1001,Austin,East Austin,Condo,2,2,980,389000,2450,18,2016,active
+1002,Austin,East Austin,Townhome,3,3,1560,579000,3300,31,2019,active
+1003,Austin,Mueller,Single Family,3,2,1820,715000,3650,12,2012,pending
+1004,Austin,South Congress,Condo,1,1,740,415000,2300,44,2020,active
+1005,Austin,South Congress,Single Family,3,2,1640,760000,3900,27,1958,active
+1006,Austin,Hyde Park,Single Family,4,3,2380,995000,4700,38,1938,active
+1007,Austin,Hyde Park,Duplex,4,3,2120,875000,5200,21,1948,pending
+1008,Austin,Domain,Condo,2,2,1120,455000,2850,15,2021,active
+1009,Austin,Domain,Townhome,3,3,1710,635000,3600,23,2022,active
+1010,Austin,Zilker,Single Family,3,2,1510,890000,4300,9,1965,pending
+1011,Austin,Zilker,Condo,2,2,1050,540000,3100,33,2018,active
+1012,Austin,Circle C,Single Family,4,3,2760,720000,4100,49,2004,active
+1013,Austin,Circle C,Single Family,5,4,3380,910000,4900,61,2008,active
+1014,Dallas,Uptown,Condo,2,2,1180,465000,3000,19,2017,active
+1015,Dallas,Uptown,Townhome,3,3,1890,710000,3900,29,2015,active
+1016,Dallas,Bishop Arts,Single Family,3,2,1650,565000,3300,24,1942,pending
+1017,Dallas,Bishop Arts,Duplex,4,3,2200,695000,4500,36,1955,active
+1018,Dallas,Deep Ellum,Condo,1,1,710,305000,2100,41,2019,active
+1019,Dallas,Deep Ellum,Condo,2,2,990,395000,2650,28,2021,active
+1020,Dallas,Preston Hollow,Single Family,5,5,4420,1450000,7600,74,1998,active
+1021,Dallas,Lakewood,Single Family,4,3,2860,925000,5200,32,1976,pending
+1022,Dallas,Lakewood,Single Family,3,2,2140,780000,4300,45,1968,active
+1023,Denver,LoDo,Condo,2,2,1040,520000,2950,25,2018,active
+1024,Denver,LoDo,Condo,1,1,680,365000,2200,34,2020,active
+1025,Denver,Highland,Townhome,3,3,1715,690000,3800,22,2016,pending
+1026,Denver,Highland,Single Family,3,2,1540,735000,3900,17,1949,active
+1027,Denver,Cherry Creek,Condo,2,2,1250,645000,3500,39,2019,active
+1028,Denver,Cherry Creek,Single Family,4,4,3120,1325000,6800,58,2006,active
+1029,Denver,Capitol Hill,Condo,1,1,620,310000,1950,20,1965,pending
+1030,Denver,Capitol Hill,Multi Family,4,3,2360,805000,5600,43,1928,active
