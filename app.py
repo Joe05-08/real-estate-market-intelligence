@@ -1,4 +1,5 @@
 import json
+import inspect
 from pathlib import Path
 
 import pandas as pd
@@ -34,6 +35,12 @@ def ensure_pipeline_outputs() -> None:
     run_pipeline(raw_path=RAW_DEMO_PATH)
 
 
+def _stretch_kwargs(streamlit_method) -> dict[str, str | bool]:
+    if "width" in inspect.signature(streamlit_method).parameters:
+        return {"width": "stretch"}
+    return {"use_container_width": True}
+
+
 @st.cache_data
 def load_data(data_mtime: float, insights_mtime: float) -> tuple[pd.DataFrame | None, list[dict]]:
     listings = pd.read_csv(DATA_PATH) if DATA_PATH.exists() else None
@@ -60,6 +67,10 @@ property_filter = st.sidebar.multiselect(
 
 filtered = df[df["city"].isin(city_filter) & df["property_type"].isin(property_filter)]
 
+if filtered.empty:
+    st.warning("No listings match the selected filters. Choose at least one city and property type.")
+    st.stop()
+
 metric_cols = st.columns(4)
 metric_cols[0].metric("Listings", f"{len(filtered):,}")
 metric_cols[1].metric("Median Price", f"${filtered['list_price'].median():,.0f}")
@@ -78,7 +89,7 @@ with left:
         color="city",
         labels={"list_price": "Median Price", "neighborhood": "Neighborhood"},
     )
-    st.plotly_chart(price_chart, use_container_width=True)
+    st.plotly_chart(price_chart, **_stretch_kwargs(st.plotly_chart))
 
 with right:
     st.subheader("Yield vs Market Speed")
@@ -91,7 +102,7 @@ with right:
         hover_data=["neighborhood", "property_type", "bedrooms", "sqft"],
         labels={"days_on_market": "Days on Market", "annual_rent_yield_pct": "Annual Rent Yield %"},
     )
-    st.plotly_chart(scatter, use_container_width=True)
+    st.plotly_chart(scatter, **_stretch_kwargs(st.plotly_chart))
 
 st.subheader("Strategic Insights")
 for insight in insights:
@@ -103,4 +114,4 @@ for insight in insights:
         st.progress(insight["confidence_score"], text=f"Confidence: {int(insight['confidence_score'] * 100)}%")
 
 with st.expander("View Clean Listing Data"):
-    st.dataframe(filtered, use_container_width=True)
+    st.dataframe(filtered, **_stretch_kwargs(st.dataframe))
