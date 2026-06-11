@@ -1,6 +1,6 @@
 # Real Estate Market Intelligence
 
-A Python market-intelligence dashboard that turns real-estate listing data into investor-focused metrics, insight cards, and an executive report.
+A Python market-intelligence dashboard that turns real-estate listing data into investor-focused metrics, AI-style market recommendations, scorecards, and an executive report.
 
 The project demonstrates a complete real-estate analytics workflow using structured listing data, reproducible processing, and an interactive Streamlit dashboard.
 
@@ -9,10 +9,11 @@ The project demonstrates a complete real-estate analytics workflow using structu
 The project follows a simple analytics workflow:
 
 ```text
-raw listings CSV
+raw/API listing data
 -> clean and enrich data
 -> calculate market signals
--> generate insight cards
+-> score markets by persona
+-> generate AI-style market brief
 -> create executive report
 -> show Streamlit dashboard
 ```
@@ -23,14 +24,16 @@ It answers questions such as:
 - Which markets are moving fastest?
 - Which areas have the highest price per square foot?
 - Where might buyers have negotiation leverage?
+- Which city is strongest for investors, buyers, sellers, or negotiation-focused buyers?
 
 ## Features
 
 - Cleans raw real-estate listing data with Pandas
 - Calculates `price_per_sqft`, rental yield, and market-speed labels
-- Generates rule-based market intelligence insights
+- Scores markets for investment, affordability, market heat, and buyer leverage
+- Generates transparent AI-style market recommendations from scored features
 - Writes an executive Markdown report
-- Displays KPIs, filters, charts, and insight cards in Streamlit
+- Displays KPIs, filters, charts, AI insights, scorecards, and data tables in Streamlit
 - Includes Docker support for reproducible local runs
 
 ## Tech Stack
@@ -52,6 +55,8 @@ real_estate_market_intelligence/
     real_estate_intelligence/
       ingest/data_cleaner.py
       engine/market_analyzer.py
+      engine/scoring.py
+      ai/insight_generator.py
       serve/report_generator.py
   app.py
   run.py
@@ -88,6 +93,14 @@ The cleaning step enriches the dataset with:
 - `annual_rent_yield_pct`
 - `market_speed`
 
+The scoring layer then creates:
+
+- `investment_score`
+- `affordability_score`
+- `market_heat_score`
+- `buyer_leverage_score`
+- `overall_market_score`
+
 ## Local Setup
 
 Create a virtual environment and install dependencies:
@@ -107,7 +120,9 @@ This creates:
 
 ```text
 data/processed/clean_listings.csv
+data/processed/market_scores.csv
 market_insights.json
+ai_market_brief.json
 executive_report.md
 ```
 
@@ -196,28 +211,34 @@ http://127.0.0.1:8502
 2. `market_analyzer.py`
    Groups the cleaned listings by city and neighborhood, calculates market-level signals, and generates insight cards.
 
-3. `report_generator.py`
+3. `scoring.py`
+   Creates city-level and neighborhood-level scores for investment quality, affordability, market heat, and buyer leverage.
+
+4. `insight_generator.py`
+   Converts the scored market signals into transparent AI-style recommendations for investors, first-time buyers, sellers, and negotiation-focused buyers.
+
+5. `report_generator.py`
    Converts the generated insights into a Markdown executive report.
 
-The dashboard in `app.py` reads the processed CSV and insight JSON. It does not call external APIs on every click.
+The dashboard in `app.py` reads the processed CSV, market score CSV, insight JSON, and AI market brief JSON. It does not call external APIs on every click.
 
 ## Current Scope
 
 - Uses a local demo dataset for reproducible analysis
-- Generates insights from transparent, rule-based market calculations
+- Generates insights from transparent scoring and rule-based AI-style recommendations
 - Runs locally with Python or Docker
 
 ## Future Enhancements
 
-- Add cached API ingestion from a real-estate data provider
 - Add Census or FRED data for neighborhood/economic context
+- Add optional LLM-generated narrative summaries using the existing scoring output
 - Add tests for cleaning and insight generation
-- Deploy the dashboard to Streamlit Community Cloud
+- Add richer historical trend analysis
 
 ## Portfolio Summary
 
 This project demonstrates an end-to-end data product workflow:
 
 ```text
-data ingestion -> cleaning -> feature engineering -> insight generation -> dashboard/reporting
+data ingestion -> cleaning -> feature engineering -> market scoring -> AI-style insight generation -> dashboard/reporting
 ```

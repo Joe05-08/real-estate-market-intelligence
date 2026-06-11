@@ -12,7 +12,9 @@ from run import run_pipeline
 BASE_DIR = Path(__file__).resolve().parent
 RAW_DEMO_PATH = BASE_DIR / "data" / "raw" / "listings.csv"
 DATA_PATH = BASE_DIR / "data" / "processed" / "clean_listings.csv"
+SCORES_PATH = BASE_DIR / "data" / "processed" / "market_scores.csv"
 INSIGHTS_PATH = BASE_DIR / "market_insights.json"
+AI_BRIEF_PATH = BASE_DIR / "ai_market_brief.json"
 
 
 st.set_page_config(
@@ -28,7 +30,7 @@ def _file_mtime(path: Path) -> float:
 
 def ensure_pipeline_outputs() -> None:
     """Create demo outputs on first app boot, including cloud deployments."""
-    if DATA_PATH.exists() and INSIGHTS_PATH.exists():
+    if DATA_PATH.exists() and SCORES_PATH.exists() and INSIGHTS_PATH.exists() and AI_BRIEF_PATH.exists():
         return
     if not RAW_DEMO_PATH.exists():
         return
@@ -36,23 +38,161 @@ def ensure_pipeline_outputs() -> None:
 
 
 def _stretch_kwargs(streamlit_method) -> dict[str, str | bool]:
-    if "width" in inspect.signature(streamlit_method).parameters:
+    version_parts = tuple(int(part) for part in st.__version__.split(".")[:2])
+    if version_parts >= (1, 50) and "width" in inspect.signature(streamlit_method).parameters:
         return {"width": "stretch"}
     return {"use_container_width": True}
 
 
 @st.cache_data
-def load_data(data_mtime: float, insights_mtime: float) -> tuple[pd.DataFrame | None, list[dict]]:
+def load_data(
+    data_mtime: float,
+    scores_mtime: float,
+    insights_mtime: float,
+    ai_brief_mtime: float,
+) -> tuple[pd.DataFrame | None, pd.DataFrame | None, list[dict], dict]:
     listings = pd.read_csv(DATA_PATH) if DATA_PATH.exists() else None
+    scores = pd.read_csv(SCORES_PATH) if SCORES_PATH.exists() else None
     insights = json.loads(INSIGHTS_PATH.read_text(encoding="utf-8")) if INSIGHTS_PATH.exists() else []
-    return listings, insights
+    ai_brief = json.loads(AI_BRIEF_PATH.read_text(encoding="utf-8")) if AI_BRIEF_PATH.exists() else {}
+    return listings, scores, insights, ai_brief
+
+
+def render_kpis(filtered: pd.DataFrame) -> None:
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Listings", f"{len(filtered):,}")
+    metric_cols[1].metric("Median Price", f"${filtered['list_price'].median():,.0f}")
+    metric_cols[2].metric("Median $/Sqft", f"${filtered['price_per_sqft'].median():,.0f}")
+    metric_cols[3].metric("Avg Yield", f"{filtered['annual_rent_yield_pct'].mean():.1f}%")
+
+
+def render_overview(filtered: pd.DataFrame, insights: list[dict]) -> None:
+    render_kpis(filtered)
+    st.divider()
+
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Price by Neighborhood")
+        price_chart = px.bar(
+            filtered.groupby(["city", "neighborhood"], as_index=False)["list_price"].median(),
+            x="neighborhood",
+            y="list_price",
+            color="city",
+            labels={"list_price": "Median Price", "neighborhood": "Neighborhood"},
+        )
+        st.plotly_chart(price_chart, **_stretch_kwargs(st.plotly_chart))
+
+    with right:
+        st.subheader("Yield vs Market Speed")
+        scatter = px.scatter(
+            filtered,
+            x="days_on_market",
+            y="annual_rent_yield_pct",
+            size="list_price",
+            color="city",
+            hover_data=["neighborhood", "property_type", "bedrooms", "sqft"],
+            labels={"days_on_market": "Days on Market", "annual_rent_yield_pct": "Annual Rent Yield %"},
+        )
+        st.plotly_chart(scatter, **_stretch_kwargs(st.plotly_chart))
+
+    st.subheader("Strategic Insights")
+    for insight in insights:
+        with st.container(border=True):
+            st.markdown(f"### {insight['title']}")
+            st.write(f"**Type:** {insight['insight_type']}")
+            st.info(insight["summary"])
+            st.success(insight["recommendation"])
+            st.progress(insight["confidence_score"], text=f"Confidence: {int(insight['confidence_score'] * 100)}%")
+
+
+def render_ai_brief(ai_brief: dict) -> None:
+    if not ai_brief:
+        st.warning("AI market brief is not available. Run the pipeline to generate it.")
+        return
+
+    st.subheader("Executive AI Market Brief")
+    st.info(ai_brief["executive_summary"])
+
+    opportunity, leverage = st.columns(2)
+    with opportunity:
+        with st.container(border=True):
+            item = ai_brief["top_neighborhood_opportunity"]
+            st.markdown(f"### {item['headline']}")
+            st.write(item["name"])
+            st.success(item["reasoning"])
+    with leverage:
+        with st.container(border=True):
+            item = ai_brief["top_negotiation_neighborhood"]
+            st.markdown(f"### {item['headline']}")
+            st.write(item["name"])
+            st.warning(item["reasoning"])
+
+    st.subheader("Persona Recommendations")
+    columns = st.columns(2)
+    for index, recommendation in enumerate(ai_brief["persona_recommendations"]):
+        with columns[index % 2]:
+            with st.container(border=True):
+                st.markdown(f"### {recommendation['persona']}")
+                st.write(f"**Best market:** {recommendation['best_market']}")
+                st.info(recommendation["headline"])
+                st.write(recommendation["reasoning"])
+                st.success(recommendation["next_step"])
+
+
+def render_market_scores(scores: pd.DataFrame | None, selected_cities: list[str]) -> None:
+    if scores is None:
+        st.warning("Market scores are not available. Run the pipeline to generate them.")
+        return
+
+    filtered_scores = scores[scores["city"].isin(selected_cities)]
+    score_columns = [
+        "investment_score",
+        "affordability_score",
+        "market_heat_score",
+        "buyer_leverage_score",
+        "overall_market_score",
+    ]
+
+    st.subheader("City Scorecard")
+    score_chart = px.bar(
+        filtered_scores.melt(
+            id_vars=["city"],
+            value_vars=score_columns,
+            var_name="score_type",
+            value_name="score",
+        ),
+        x="city",
+        y="score",
+        color="score_type",
+        barmode="group",
+        labels={"score": "Score", "city": "City", "score_type": "Score Type"},
+    )
+    st.plotly_chart(score_chart, **_stretch_kwargs(st.plotly_chart))
+
+    display_columns = [
+        "city",
+        "overall_market_score",
+        "investment_score",
+        "affordability_score",
+        "market_heat_score",
+        "buyer_leverage_score",
+        "median_price",
+        "avg_rent_yield",
+        "median_days_on_market",
+    ]
+    st.dataframe(filtered_scores[display_columns], **_stretch_kwargs(st.dataframe))
 
 
 ensure_pipeline_outputs()
-df, insights = load_data(_file_mtime(DATA_PATH), _file_mtime(INSIGHTS_PATH))
+df, scores, insights, ai_brief = load_data(
+    _file_mtime(DATA_PATH),
+    _file_mtime(SCORES_PATH),
+    _file_mtime(INSIGHTS_PATH),
+    _file_mtime(AI_BRIEF_PATH),
+)
 
 st.title("Real Estate Market Intelligence")
-st.caption("A local market analysis dashboard built from real-estate listing data.")
+st.caption("A market scoring and AI-style intelligence dashboard built from real-estate listing data.")
 
 if df is None:
     st.error("Could not generate dashboard data from the demo dataset.")
@@ -67,51 +207,24 @@ property_filter = st.sidebar.multiselect(
 
 filtered = df[df["city"].isin(city_filter) & df["property_type"].isin(property_filter)]
 
+selected_cities = sorted(filtered["city"].unique())
+
 if filtered.empty:
     st.warning("No listings match the selected filters. Choose at least one city and property type.")
     st.stop()
 
-metric_cols = st.columns(4)
-metric_cols[0].metric("Listings", f"{len(filtered):,}")
-metric_cols[1].metric("Median Price", f"${filtered['list_price'].median():,.0f}")
-metric_cols[2].metric("Median $/Sqft", f"${filtered['price_per_sqft'].median():,.0f}")
-metric_cols[3].metric("Avg Yield", f"{filtered['annual_rent_yield_pct'].mean():.1f}%")
+overview_tab, ai_tab, scores_tab, data_tab = st.tabs(
+    ["Overview", "AI Market Insights", "Market Scores", "Data Explorer"]
+)
 
-st.divider()
+with overview_tab:
+    render_overview(filtered, insights)
 
-left, right = st.columns(2)
-with left:
-    st.subheader("Price by Neighborhood")
-    price_chart = px.bar(
-        filtered.groupby(["city", "neighborhood"], as_index=False)["list_price"].median(),
-        x="neighborhood",
-        y="list_price",
-        color="city",
-        labels={"list_price": "Median Price", "neighborhood": "Neighborhood"},
-    )
-    st.plotly_chart(price_chart, **_stretch_kwargs(st.plotly_chart))
+with ai_tab:
+    render_ai_brief(ai_brief)
 
-with right:
-    st.subheader("Yield vs Market Speed")
-    scatter = px.scatter(
-        filtered,
-        x="days_on_market",
-        y="annual_rent_yield_pct",
-        size="list_price",
-        color="city",
-        hover_data=["neighborhood", "property_type", "bedrooms", "sqft"],
-        labels={"days_on_market": "Days on Market", "annual_rent_yield_pct": "Annual Rent Yield %"},
-    )
-    st.plotly_chart(scatter, **_stretch_kwargs(st.plotly_chart))
+with scores_tab:
+    render_market_scores(scores, selected_cities)
 
-st.subheader("Strategic Insights")
-for insight in insights:
-    with st.container(border=True):
-        st.markdown(f"### {insight['title']}")
-        st.write(f"**Type:** {insight['insight_type']}")
-        st.info(insight["summary"])
-        st.success(insight["recommendation"])
-        st.progress(insight["confidence_score"], text=f"Confidence: {int(insight['confidence_score'] * 100)}%")
-
-with st.expander("View Clean Listing Data"):
+with data_tab:
     st.dataframe(filtered, **_stretch_kwargs(st.dataframe))
