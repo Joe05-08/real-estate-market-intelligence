@@ -5,8 +5,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from run import run_pipeline
+
 
 BASE_DIR = Path(__file__).resolve().parent
+RAW_DEMO_PATH = BASE_DIR / "data" / "raw" / "listings.csv"
 DATA_PATH = BASE_DIR / "data" / "processed" / "clean_listings.csv"
 INSIGHTS_PATH = BASE_DIR / "market_insights.json"
 
@@ -22,6 +25,15 @@ def _file_mtime(path: Path) -> float:
     return path.stat().st_mtime if path.exists() else 0
 
 
+def ensure_pipeline_outputs() -> None:
+    """Create demo outputs on first app boot, including cloud deployments."""
+    if DATA_PATH.exists() and INSIGHTS_PATH.exists():
+        return
+    if not RAW_DEMO_PATH.exists():
+        return
+    run_pipeline(raw_path=RAW_DEMO_PATH)
+
+
 @st.cache_data
 def load_data(data_mtime: float, insights_mtime: float) -> tuple[pd.DataFrame | None, list[dict]]:
     listings = pd.read_csv(DATA_PATH) if DATA_PATH.exists() else None
@@ -29,13 +41,14 @@ def load_data(data_mtime: float, insights_mtime: float) -> tuple[pd.DataFrame | 
     return listings, insights
 
 
+ensure_pipeline_outputs()
 df, insights = load_data(_file_mtime(DATA_PATH), _file_mtime(INSIGHTS_PATH))
 
 st.title("Real Estate Market Intelligence")
 st.caption("A local market analysis dashboard built from real-estate listing data.")
 
 if df is None:
-    st.error("Run `python run.py` first to generate processed data and insights.")
+    st.error("Could not generate dashboard data from the demo dataset.")
     st.stop()
 
 city_filter = st.sidebar.multiselect("City", sorted(df["city"].unique()), default=sorted(df["city"].unique()))

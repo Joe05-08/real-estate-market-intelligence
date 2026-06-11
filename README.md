@@ -158,6 +158,20 @@ data/raw/api_cache/
 data/raw/rentcast_listings.csv
 ```
 
+## Streamlit Cloud Deployment
+
+The app is deployment-safe because `app.py` can generate demo dashboard outputs from `data/raw/listings.csv` when processed files are missing.
+
+Use these settings in Streamlit Community Cloud:
+
+```text
+Repository: Joe05-08/real-estate-market-intelligence
+Branch: main
+Main file path: app.py
+```
+
+The deployed app uses the committed demo dataset by default. Keep API keys out of GitHub; add secrets in Streamlit only if you later add a live API workflow.
+
 ## Docker
 
 Build and run with Docker Compose:
