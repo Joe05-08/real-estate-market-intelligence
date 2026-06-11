@@ -6,7 +6,7 @@ def generate_report(insights: list[dict], output_path: str | Path) -> None:
     lines = [
         "# Real Estate Market Intelligence Report",
         "",
-        "This report summarizes the strongest market signals found in the sample listing dataset.",
+        "This report summarizes the strongest market signals found in the current listing dataset.",
         "",
     ]
 

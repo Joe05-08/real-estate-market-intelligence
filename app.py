@@ -18,17 +18,21 @@ st.set_page_config(
 )
 
 
+def _file_mtime(path: Path) -> float:
+    return path.stat().st_mtime if path.exists() else 0
+
+
 @st.cache_data
-def load_data() -> tuple[pd.DataFrame | None, list[dict]]:
+def load_data(data_mtime: float, insights_mtime: float) -> tuple[pd.DataFrame | None, list[dict]]:
     listings = pd.read_csv(DATA_PATH) if DATA_PATH.exists() else None
     insights = json.loads(INSIGHTS_PATH.read_text(encoding="utf-8")) if INSIGHTS_PATH.exists() else []
     return listings, insights
 
 
-df, insights = load_data()
+df, insights = load_data(_file_mtime(DATA_PATH), _file_mtime(INSIGHTS_PATH))
 
 st.title("Real Estate Market Intelligence")
-st.caption("A local AI-style market analysis dashboard built from listing data.")
+st.caption("A local market analysis dashboard built from real-estate listing data.")
 
 if df is None:
     st.error("Run `python run.py` first to generate processed data and insights.")

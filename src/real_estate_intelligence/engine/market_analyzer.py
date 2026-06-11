@@ -14,6 +14,53 @@ def _pct(value: float) -> str:
     return f"{value:.1f}%"
 
 
+def _market_time_signal(row: pd.Series) -> dict:
+    if row.median_days <= 21:
+        return {
+            "title": f"{row.neighborhood} is moving fastest",
+            "type": "Demand Signal",
+            "summary": (
+                f"{row.neighborhood}, {row.city} has a median of {row.median_days:.0f} days on market, "
+                "suggesting stronger near-term buyer demand than slower neighborhoods."
+            ),
+            "recommendation": (
+                "Buyers should prepare financing and offer terms before touring. Sellers in this area "
+                "can test firmer pricing if comparable sales support it."
+            ),
+            "confidence": 0.84,
+        }
+
+    if row.median_days <= 60:
+        return {
+            "title": f"{row.neighborhood} has the shortest market time",
+            "type": "Relative Demand Signal",
+            "summary": (
+                f"{row.neighborhood}, {row.city} has the shortest median market time in this dataset "
+                f"at {row.median_days:.0f} days."
+            ),
+            "recommendation": (
+                "Treat this as a relative demand signal, then compare against recent comps and local "
+                "inventory before assuming strong pricing power."
+            ),
+            "confidence": 0.78,
+        }
+
+    return {
+        "title": f"{row.neighborhood} is the least stale segment",
+        "type": "Inventory Quality Signal",
+        "summary": (
+            f"{row.neighborhood}, {row.city} has the shortest median market time in this dataset, "
+            f"but it is still {row.median_days:.0f} days. That suggests the fetched listings are stale "
+            "or the sampled inventory is slow-moving."
+        ),
+        "recommendation": (
+            "Use this result as a data-quality flag. Refresh the API cache, widen the market sample, "
+            "or filter for more recent listings before making demand conclusions."
+        ),
+        "confidence": 0.62,
+    }
+
+
 def generate_market_insights(df: pd.DataFrame, output_path: str | Path) -> list[dict]:
     """Generate simple, explainable real-estate market insights."""
     output_path = Path(output_path)
@@ -47,6 +94,8 @@ def generate_market_insights(df: pd.DataFrame, output_path: str | Path) -> list[
     premium = neighborhood.sort_values("median_ppsf", ascending=False).iloc[0]
     value_city = city.sort_values(["median_price", "avg_yield"], ascending=[True, False]).iloc[0]
     slow = neighborhood.sort_values("median_days", ascending=False).iloc[0]
+    market_time = _market_time_signal(fastest)
+    has_single_city = len(city) == 1
 
     insights = [
         {
@@ -54,7 +103,7 @@ def generate_market_insights(df: pd.DataFrame, output_path: str | Path) -> list[
             "insight_type": "Investor Opportunity",
             "summary": (
                 f"{best_yield.neighborhood}, {best_yield.city} shows an average annual rent "
-                f"yield of {_pct(best_yield.avg_yield)}, the highest in the sample."
+                f"yield of {_pct(best_yield.avg_yield)}, the highest in the current dataset."
             ),
             "recommendation": (
                 "Prioritize this area for rental-property screening, then validate taxes, HOA fees, "
@@ -64,17 +113,11 @@ def generate_market_insights(df: pd.DataFrame, output_path: str | Path) -> list[
             "supporting_data": best_yield.to_dict(),
         },
         {
-            "title": f"{fastest.neighborhood} is moving fastest",
-            "insight_type": "Demand Signal",
-            "summary": (
-                f"{fastest.neighborhood}, {fastest.city} has a median of {fastest.median_days:.0f} "
-                "days on market, suggesting stronger buyer demand than slower neighborhoods."
-            ),
-            "recommendation": (
-                "Buyers should prepare financing and offer terms before touring. Sellers in this area "
-                "can test firmer pricing if comparable sales support it."
-            ),
-            "confidence_score": 0.84,
+            "title": market_time["title"],
+            "insight_type": market_time["type"],
+            "summary": market_time["summary"],
+            "recommendation": market_time["recommendation"],
+            "confidence_score": market_time["confidence"],
             "supporting_data": fastest.to_dict(),
         },
         {
@@ -92,15 +135,29 @@ def generate_market_insights(df: pd.DataFrame, output_path: str | Path) -> list[
             "supporting_data": premium.to_dict(),
         },
         {
-            "title": f"{value_city.city} offers the lowest median entry price",
+            "title": (
+                f"{value_city.city} market snapshot"
+                if has_single_city
+                else f"{value_city.city} offers the lowest median entry price"
+            ),
             "insight_type": "Affordability Signal",
             "summary": (
-                f"{value_city.city} has the lowest city-level median listing price at "
-                f"{_money(value_city.median_price)} while averaging {_pct(value_city.avg_yield)} yield."
+                f"{value_city.city} has a median listing price of {_money(value_city.median_price)} "
+                f"and averages {_pct(value_city.avg_yield)} yield."
+                if has_single_city
+                else (
+                    f"{value_city.city} has the lowest city-level median listing price at "
+                    f"{_money(value_city.median_price)} while averaging {_pct(value_city.avg_yield)} yield."
+                )
             ),
             "recommendation": (
-                "Position this city as the first screen for budget-sensitive buyers or early-stage "
-                "investors comparing multiple markets."
+                "Use this city-level snapshot as a baseline, then add more markets for stronger "
+                "cross-market comparison."
+                if has_single_city
+                else (
+                    "Position this city as the first screen for budget-sensitive buyers or early-stage "
+                    "investors comparing multiple markets."
+                )
             ),
             "confidence_score": 0.8,
             "supporting_data": value_city.to_dict(),

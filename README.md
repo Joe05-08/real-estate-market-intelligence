@@ -123,6 +123,41 @@ Open:
 http://127.0.0.1:8501
 ```
 
+## Optional API Ingestion
+
+The project can fetch real-estate listings from RentCast and cache the raw API response locally. API calls are made only when the fetch script is run manually; the dashboard reads processed local files.
+
+Create a local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Add your RentCast API key:
+
+```env
+RENTCAST_API_KEY=your_rentcast_api_key_here
+```
+
+Fetch one or more markets:
+
+```bash
+.venv/bin/python fetch_rentcast_data.py --market Austin,TX --limit 10
+```
+
+Run the pipeline from the fetched data:
+
+```bash
+.venv/bin/python run.py --raw-path data/raw/rentcast_listings.csv
+```
+
+API cache files and normalized API CSVs are intentionally ignored by Git:
+
+```text
+data/raw/api_cache/
+data/raw/rentcast_listings.csv
+```
+
 ## Docker
 
 Build and run with Docker Compose:

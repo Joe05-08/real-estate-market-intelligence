@@ -4,5 +4,7 @@ __pycache__/
 *.pyc
 .streamlit/
 data/processed/
+data/raw/api_cache/
+data/raw/rentcast_listings.csv
 market_insights.json
 executive_report.md
