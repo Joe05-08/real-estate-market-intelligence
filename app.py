@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from run import run_pipeline
+from src.real_estate_intelligence.pipeline import run_pipeline
 
 
 BASE_DIR = Path(__file__).resolve().parent
