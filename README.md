@@ -2,13 +2,11 @@
 
 A Python market-intelligence dashboard that turns real-estate listing data into investor-focused metrics, insight cards, and an executive report.
 
-Version 1 uses a local sample dataset so the full workflow is easy to run, inspect, and explain. Future versions will add cached real-estate API ingestion and LLM-generated recommendations.
-
-![Dashboard screenshot](assets/dashboard.png)
+The project demonstrates a complete real-estate analytics workflow using structured listing data, reproducible processing, and an interactive Streamlit dashboard.
 
 ## Project Overview
 
-The project follows a simple analytics pipeline:
+The project follows a simple analytics workflow:
 
 ```text
 raw listings CSV
@@ -64,7 +62,7 @@ real_estate_market_intelligence/
 
 ## Data
 
-Version 1 uses a sample CSV dataset:
+The repository includes a demo listing dataset:
 
 ```text
 data/raw/listings.csv
@@ -154,18 +152,16 @@ http://127.0.0.1:8502
 
 The dashboard in `app.py` reads the processed CSV and insight JSON. It does not call external APIs on every click.
 
-## Current Limitations
+## Current Scope
 
-- Uses sample data rather than live listing data
-- Insight generation is rule-based rather than LLM-generated
-- No automated tests yet
-- Not deployed publicly yet
+- Uses a local demo dataset for reproducible analysis
+- Generates insights from transparent, rule-based market calculations
+- Runs locally with Python or Docker
 
-## Roadmap
+## Future Enhancements
 
 - Add cached API ingestion from a real-estate data provider
 - Add Census or FRED data for neighborhood/economic context
-- Add LLM-generated narrative recommendations
 - Add tests for cleaning and insight generation
 - Deploy the dashboard to Streamlit Community Cloud
 
@@ -176,5 +172,3 @@ This project demonstrates an end-to-end data product workflow:
 ```text
 data ingestion -> cleaning -> feature engineering -> insight generation -> dashboard/reporting
 ```
-
-It is designed as a learning-first foundation that can grow into a more advanced AI real-estate intelligence system.
