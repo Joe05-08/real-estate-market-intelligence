@@ -5,6 +5,10 @@ from pathlib import Path
 import pandas as pd
 
 
+def _market_group_columns(df: pd.DataFrame) -> list[str]:
+    return ["state", "city"] if "state" in df.columns else ["city"]
+
+
 def _score(series: pd.Series, *, higher_is_better: bool = True) -> pd.Series:
     low = series.min()
     high = series.max()
@@ -25,8 +29,9 @@ def _weighted_score(parts: dict[str, tuple[pd.Series, float]]) -> pd.Series:
 
 def build_city_scores(df: pd.DataFrame, output_path: str | Path | None = None) -> pd.DataFrame:
     """Create explainable city-level scores for investment, affordability, demand, and leverage."""
+    group_columns = _market_group_columns(df)
     scores = (
-        df.groupby("city")
+        df.groupby(group_columns)
         .agg(
             listing_count=("listing_id", "count"),
             median_price=("list_price", "median"),
@@ -36,6 +41,9 @@ def build_city_scores(df: pd.DataFrame, output_path: str | Path | None = None) -
             avg_estimated_rent=("estimated_rent", "mean"),
         )
         .reset_index()
+    )
+    scores["market"] = scores["city"] + (
+        ", " + scores["state"] if "state" in scores.columns else ""
     )
 
     yield_score = _score(scores["avg_rent_yield"], higher_is_better=True)
@@ -98,8 +106,9 @@ def build_city_scores(df: pd.DataFrame, output_path: str | Path | None = None) -
 
 def build_neighborhood_scores(df: pd.DataFrame) -> pd.DataFrame:
     """Score neighborhoods so the AI brief can explain local opportunities."""
+    group_columns = _market_group_columns(df) + ["neighborhood"]
     neighborhoods = (
-        df.groupby(["city", "neighborhood"])
+        df.groupby(group_columns)
         .agg(
             listing_count=("listing_id", "count"),
             median_price=("list_price", "median"),
@@ -108,6 +117,9 @@ def build_neighborhood_scores(df: pd.DataFrame) -> pd.DataFrame:
             avg_rent_yield=("annual_rent_yield_pct", "mean"),
         )
         .reset_index()
+    )
+    neighborhoods["market"] = neighborhoods["city"] + (
+        ", " + neighborhoods["state"] if "state" in neighborhoods.columns else ""
     )
 
     neighborhoods["investment_score"] = _weighted_score(

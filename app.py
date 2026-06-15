@@ -110,6 +110,28 @@ def render_ai_brief(ai_brief: dict) -> None:
         st.warning("AI market brief is not available. Run the pipeline to generate it.")
         return
 
+    generation_method = ai_brief.get("generation_method", "scoring_rules")
+    if generation_method == "scoring_rules_plus_groq_llm":
+        st.caption("Generated with market scoring plus a Groq-hosted LLM.")
+    else:
+        st.caption("Generated with the free explainable scoring engine. Run the pipeline with --use-groq for a real LLM brief.")
+
+    if "generative_ai_brief" in ai_brief:
+        groq_brief = ai_brief["generative_ai_brief"]
+        st.subheader("Generative AI Brief")
+        st.info(groq_brief["executive_summary"])
+        st.write(f"**Top opportunity:** {groq_brief['top_opportunity']}")
+        st.write(f"**Risk watch:** {groq_brief['risk_watch']}")
+        st.write(f"**Data caveat:** {groq_brief['data_caveat']}")
+        for recommendation in groq_brief["persona_recommendations"]:
+            with st.container(border=True):
+                st.markdown(f"### {recommendation['persona']}")
+                st.write(recommendation["recommendation"])
+                st.caption(recommendation["reasoning"])
+        metadata = groq_brief.get("llm_metadata", {})
+        if metadata:
+            st.caption(f"LLM provider: {metadata.get('provider')} | Model: {metadata.get('model')}")
+
     st.subheader("Executive AI Market Brief")
     st.info(ai_brief["executive_summary"])
 
@@ -139,12 +161,15 @@ def render_ai_brief(ai_brief: dict) -> None:
                 st.success(recommendation["next_step"])
 
 
-def render_market_scores(scores: pd.DataFrame | None, selected_cities: list[str]) -> None:
+def render_market_scores(scores: pd.DataFrame | None, selected_states: list[str], selected_cities: list[str]) -> None:
     if scores is None:
         st.warning("Market scores are not available. Run the pipeline to generate them.")
         return
 
-    filtered_scores = scores[scores["city"].isin(selected_cities)]
+    filtered_scores = scores[
+        scores["state"].isin(selected_states)
+        & scores["city"].isin(selected_cities)
+    ]
     score_columns = [
         "investment_score",
         "affordability_score",
@@ -170,7 +195,9 @@ def render_market_scores(scores: pd.DataFrame | None, selected_cities: list[str]
     st.plotly_chart(score_chart, **_stretch_kwargs(st.plotly_chart))
 
     display_columns = [
+        "state",
         "city",
+        "market",
         "overall_market_score",
         "investment_score",
         "affordability_score",
@@ -199,13 +226,18 @@ if df is None:
     st.stop()
 
 city_filter = st.sidebar.multiselect("City", sorted(df["city"].unique()), default=sorted(df["city"].unique()))
+state_filter = st.sidebar.multiselect("State", sorted(df["state"].unique()), default=sorted(df["state"].unique()))
 property_filter = st.sidebar.multiselect(
     "Property Type",
     sorted(df["property_type"].unique()),
     default=sorted(df["property_type"].unique()),
 )
 
-filtered = df[df["city"].isin(city_filter) & df["property_type"].isin(property_filter)]
+filtered = df[
+    df["state"].isin(state_filter)
+    & df["city"].isin(city_filter)
+    & df["property_type"].isin(property_filter)
+]
 
 selected_cities = sorted(filtered["city"].unique())
 
@@ -224,7 +256,7 @@ with ai_tab:
     render_ai_brief(ai_brief)
 
 with scores_tab:
-    render_market_scores(scores, selected_cities)
+    render_market_scores(scores, state_filter, selected_cities)
 
 with data_tab:
     st.dataframe(filtered, **_stretch_kwargs(st.dataframe))

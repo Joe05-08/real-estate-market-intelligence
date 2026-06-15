@@ -171,6 +171,7 @@ def normalize_rentcast_payload(payloads: list[dict[str, list[dict[str, Any]]]]) 
             rows.append(
                 {
                     "listing_id": listing.get("id"),
+                    "state": listing.get("state") or listing.get("stateCode") or "Unknown",
                     "city": listing.get("city"),
                     "neighborhood": f"ZIP {zip_code}",
                     "property_type": listing.get("propertyType") or "Unknown",

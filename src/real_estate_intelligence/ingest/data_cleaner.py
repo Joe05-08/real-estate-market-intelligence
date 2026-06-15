@@ -28,6 +28,8 @@ def clean_listings(raw_path: str | Path, processed_path: str | Path) -> pd.DataF
     missing = REQUIRED_COLUMNS.difference(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
+    if "state" not in df.columns:
+        df["state"] = "Unknown"
 
     numeric_columns = [
         "bedrooms",
@@ -43,6 +45,9 @@ def clean_listings(raw_path: str | Path, processed_path: str | Path) -> pd.DataF
 
     df = df.dropna(subset=numeric_columns)
     df = df[df["sqft"] > 0].copy()
+    df["state"] = df["state"].fillna("Unknown").astype(str)
+    df["city"] = df["city"].fillna("Unknown").astype(str)
+    df["market"] = df["city"] + ", " + df["state"]
     df["price_per_sqft"] = (df["list_price"] / df["sqft"]).round(2)
     df["monthly_rent_yield"] = (df["estimated_rent"] / df["list_price"]).round(4)
     df["annual_rent_yield_pct"] = (df["monthly_rent_yield"] * 12 * 100).round(2)

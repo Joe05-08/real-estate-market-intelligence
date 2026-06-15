@@ -1,6 +1,6 @@
 # Real Estate Market Intelligence
 
-A Python market-intelligence dashboard that turns real-estate listing data into investor-focused metrics, AI-style market recommendations, scorecards, and an executive report.
+A Python market-intelligence dashboard that turns real-estate listing data into investor-focused metrics, market scorecards, optional Groq-powered generative AI recommendations, and an executive report.
 
 The project demonstrates a complete real-estate analytics workflow using structured listing data, reproducible processing, and an interactive Streamlit dashboard.
 
@@ -13,7 +13,7 @@ raw/API listing data
 -> clean and enrich data
 -> calculate market signals
 -> score markets by persona
--> generate AI-style market brief
+-> generate AI market brief
 -> create executive report
 -> show Streamlit dashboard
 ```
@@ -25,6 +25,7 @@ It answers questions such as:
 - Which areas have the highest price per square foot?
 - Where might buyers have negotiation leverage?
 - Which city is strongest for investors, buyers, sellers, or negotiation-focused buyers?
+- How do markets compare across Texas, Colorado, Florida, and New Jersey?
 
 ## Features
 
@@ -32,8 +33,9 @@ It answers questions such as:
 - Calculates `price_per_sqft`, rental yield, and market-speed labels
 - Scores markets for investment, affordability, market heat, and buyer leverage
 - Generates transparent AI-style market recommendations from scored features
+- Optionally calls Groq to generate a real LLM-written market brief from structured scores
 - Writes an executive Markdown report
-- Displays KPIs, filters, charts, AI insights, scorecards, and data tables in Streamlit
+- Displays state/city filters, KPIs, charts, AI insights, scorecards, and data tables in Streamlit
 - Includes Docker support for reproducible local runs
 
 ## Tech Stack
@@ -42,6 +44,7 @@ It answers questions such as:
 - Pandas
 - Streamlit
 - Plotly
+- Groq API, optional
 - Docker
 
 ## Repository Structure
@@ -56,6 +59,7 @@ real_estate_market_intelligence/
       ingest/data_cleaner.py
       engine/market_analyzer.py
       engine/scoring.py
+      ai/groq_generator.py
       ai/insight_generator.py
       serve/report_generator.py
   app.py
@@ -76,6 +80,7 @@ data/raw/listings.csv
 Each row represents one listing with fields such as:
 
 - city
+- state
 - neighborhood
 - property type
 - bedrooms and bathrooms
@@ -116,6 +121,14 @@ Run the pipeline:
 .venv/bin/python run.py
 ```
 
+To generate an additional real LLM-written brief with Groq:
+
+```bash
+.venv/bin/python run.py --use-groq
+```
+
+This requires `GROQ_API_KEY` in `.env`. The dashboard does not call Groq on every click; it reads the saved JSON output.
+
 This creates:
 
 ```text
@@ -152,6 +165,7 @@ Add your RentCast API key:
 
 ```env
 RENTCAST_API_KEY=your_rentcast_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
 Fetch one or more markets:
@@ -185,7 +199,7 @@ Branch: main
 Main file path: app.py
 ```
 
-The deployed app uses the committed demo dataset by default. Keep API keys out of GitHub; add secrets in Streamlit only if you later add a live API workflow.
+The deployed app uses the committed demo dataset by default. Keep API keys out of GitHub; add secrets in Streamlit only if you later add a controlled API or LLM workflow.
 
 ## Docker
 
@@ -215,9 +229,12 @@ http://127.0.0.1:8502
    Creates city-level and neighborhood-level scores for investment quality, affordability, market heat, and buyer leverage.
 
 4. `insight_generator.py`
-   Converts the scored market signals into transparent AI-style recommendations for investors, first-time buyers, sellers, and negotiation-focused buyers.
+   Converts the scored market signals into transparent AI-style recommendations for investors, first-time buyers, sellers, and negotiation-focused buyers. When `--use-groq` is enabled, it also stores a Groq-generated natural-language brief.
 
-5. `report_generator.py`
+5. `groq_generator.py`
+   Sends structured market scores to Groq's OpenAI-compatible chat completions endpoint and returns a JSON market brief. This is optional and only runs when explicitly requested.
+
+6. `report_generator.py`
    Converts the generated insights into a Markdown executive report.
 
 The dashboard in `app.py` reads the processed CSV, market score CSV, insight JSON, and AI market brief JSON. It does not call external APIs on every click.
@@ -225,13 +242,14 @@ The dashboard in `app.py` reads the processed CSV, market score CSV, insight JSO
 ## Current Scope
 
 - Uses a local demo dataset for reproducible analysis
-- Generates insights from transparent scoring and rule-based AI-style recommendations
+- Includes demo markets across Texas, Colorado, Florida, and New Jersey
+- Generates insights from transparent scoring and optional Groq LLM generation
 - Runs locally with Python or Docker
 
 ## Future Enhancements
 
 - Add Census or FRED data for neighborhood/economic context
-- Add optional LLM-generated narrative summaries using the existing scoring output
+- Add scheduled data refresh jobs for API-backed deployments
 - Add tests for cleaning and insight generation
 - Add richer historical trend analysis
 
