@@ -4,6 +4,14 @@ A Python market-intelligence dashboard that turns real-estate listing data into 
 
 The project demonstrates a complete real-estate analytics workflow using structured listing data, reproducible processing, and an interactive Streamlit dashboard.
 
+## Live Dashboard
+
+Open the deployed Streamlit dashboard here:
+
+https://real-estate-market-intelligence-gyvpjmbbxqn498ru2kxgnn.streamlit.app/
+
+The Docker and `127.0.0.1` links below are for running the project on your own computer. External viewers should use the deployed Streamlit link above.
+
 ## Project Overview
 
 The project follows a simple analytics workflow:
@@ -214,6 +222,8 @@ The dashboard will be available at:
 ```text
 http://127.0.0.1:8502
 ```
+
+This Docker URL only works on the machine running Docker. For sharing the project with recruiters or external viewers, use the deployed Streamlit dashboard link at the top of this README.
 
 ## How The Pipeline Works
 
